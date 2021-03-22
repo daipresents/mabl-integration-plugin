@@ -129,7 +129,7 @@ public class MablRestApiClientImpl implements MablRestApiClient {
             if (proxyConfig != null) {
                 
                 HttpHost proxy = new HttpHost(proxyConfig.name, proxyConfig.port);
-
+                
                 // Add proxy authentication if Jenkins has
                 CredentialsProvider proxyCredential = null;
                 if (Util.fixEmpty(proxyConfig.getUserName()) != null && Util.fixEmpty(proxyConfig.getPassword()) != null) {
