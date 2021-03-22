@@ -16,8 +16,12 @@ import com.mabl.integration.jenkins.domain.GetApplicationsResult;
 import com.mabl.integration.jenkins.domain.GetEnvironmentsResult;
 import com.mabl.integration.jenkins.domain.GetLabelsResult;
 import hudson.remoting.Base64;
+import hudson.Util;
 import hudson.util.Secret;
+import hudson.ProxyConfiguration;
+import jenkins.model.Jenkins;
 import org.apache.http.Header;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -117,6 +121,34 @@ public class MablRestApiClientImpl implements MablRestApiClient {
                 .setUserAgent(PLUGIN_USER_AGENT) // track calls @ API level
                 .setConnectionTimeToLive(30, TimeUnit.SECONDS) // use keep alive in SSL API connections
                 .setDefaultRequestConfig(getDefaultRequestConfig());
+        
+        // Looks for Jenkins Proxy
+        Jenkins jenkins = Jenkins.getInstance();
+        if(jenkins != null){
+            ProxyConfiguration proxyConfig = jenkins.proxy;
+            if (proxyConfig != null) {
+                
+                HttpHost proxy = new HttpHost(proxyConfig.name, proxyConfig.port);
+
+                // Add proxy authentication if Jenkins has
+                CredentialsProvider proxyCredential = null;
+                if (Util.fixEmpty(proxyConfig.getUserName()) != null && Util.fixEmpty(proxyConfig.getPassword()) != null) {
+                    proxyCredential = new BasicCredentialsProvider();
+                    proxyCredential.setCredentials(
+                        new AuthScope(proxy),
+                        new UsernamePasswordCredentials(proxyConfig.getUserName(), proxyConfig.getPassword()));
+                }
+                
+                RequestConfig config = RequestConfig.custom()
+                        .setProxy(proxy)
+                        .build();
+
+                httpClientBuilder
+                        .setDefaultCredentialsProvider(proxyCredential)
+                        .setDefaultRequestConfig(config)
+                        .build();
+            }
+        }
 
         if (disableSslVerification) {
             final SSLContext sslContext;
